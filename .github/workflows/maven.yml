@@ -1,0 +1,55 @@
+name: Java CI with Maven
+
+on:
+  pull_request:
+    branches:
+      - master
+      - main
+      - issue-*
+  push:
+    branches:
+      - master
+      - main
+      - issue-*
+
+jobs:
+  build_and_test:
+    name: Build and Test
+    runs-on: ubuntu-latest
+    permissions: write-all
+
+    steps:
+      - name: checkout Git repository
+        uses: actions/checkout@v2
+
+      - name: Install Java and Maven
+        uses: actions/setup-java@v2
+        with:
+          java-version: '17'
+          distribution: 'adopt'
+          cache: maven
+      - name: Install Chrome
+        uses: browser-actions/setup-chrome@latest
+
+      - name: Install Firefox
+        uses: browser-actions/setup-firefox@latest
+
+      - name: Build the Project
+        run: mvn clean install -DskipTests
+      - name: Run regression suite
+        run: mvn clean test -DapiUrl=https://4eb1-93-74-192-155.ngrok-free.app/jsonrpc.php
+
+      - name: Upload target folder
+        uses: actions/upload-artifact@v2
+        with:
+          name: target
+          path:  ${{ github.workspace }}/target
+
+      - name: Test Report
+        uses: dorny/test-reporter@v1
+        if: success() || failure()
+        with:
+          name: Test Results
+          path: ${{ github.workspace }}/target/surefire-reports/TEST-TestSuite.xml
+          reporter: java-junit
+          java-version: 20
